@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Speech API Bridge</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button.primary {
+            background-color: #2196f3;
+            color: white;
+        }
+        button.secondary {
+            background-color: #757575;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .transcription {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+        select {
+            padding: 8px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            width: 100%;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Web Speech API Bridge</h1>
+        <div class="status" id="status">Status: Ready</div>
+        
+        <div class="controls">
+            <h3>Speech-to-Text (STT)</h3>
+            <button id="startStt" class="primary">Start Listening</button>
+            <button id="stopStt" class="secondary">Stop Listening</button>
+            <div class="transcription" id="transcription">Transcription will appear here...</div>
+        </div>
+        
+        <div class="controls">
+            <h3>Text-to-Speech (TTS)</h3>
+            <select id="voiceSelect"></select>
+            <input type="text" id="ttsText" placeholder="Enter text to speak" style="width: 100%; padding: 8px; margin: 10px 0;">
+            <button id="speak" class="primary">Speak</button>
+        </div>
+        
+        <div class="controls hidden" id="apiControls">
+            <h3>API Mode (for C++ integration)</h3>
+            <div class="status">API Mode: Active - Listening for commands from C++ application</div>
+        </div>
+    </div>
+
+    <script>
+        // Check for Web Speech API support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const speechSynthesis = window.speechSynthesis;
+        
+        let recognition = null;
+        let voices = [];
+        let isApiMode = false;
+        
+        // Initialize speech recognition
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                        if (isApiMode) {
+                            // Send to C++ via custom event or fetch
+                            sendToCpp('stt', transcript);
+                        }
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                document.getElementById('transcription').innerHTML = 
+                    '<span style="color: #000;">' + finalTranscript + '</span>' +
+                    '<span style="color: #999;">' + interimTranscript + '</span>';
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                updateStatus('Error: ' + event.error);
+            };
+            
+            recognition.onend = () => {
+                if (isApiMode) {
+                    // Restart in API mode
+                    recognition.start();
+                } else {
+                    updateStatus('Status: Stopped');
+                }
+            };
+        } else {
+            updateStatus('Speech Recognition not supported in this browser');
+        }
+        
+        // Load available voices
+        function loadVoices() {
+            voices = speechSynthesis.getVoices();
+            const voiceSelect = document.getElementById('voiceSelect');
+            voiceSelect.innerHTML = '';
+            
+            voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+        }
+        
+        // Load voices when they're available
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+        loadVoices();
+        
+        // Send voices to C++ server when loaded
+        function sendVoicesToCpp() {
+            const voicesData = voices.map(v => ({
+                name: v.name,
+                lang: v.lang,
+                default: v.default
+            }));
+            
+            fetch('http://localhost:8080/api/speech', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    type: 'voices', 
+                    data: JSON.stringify(voicesData) 
+                })
+            }).catch(err => console.error('Failed to send voices to C++:', err));
+        }
+        
+        // Send voices after a short delay to ensure they're loaded
+        setTimeout(sendVoicesToCpp, 1000);
+        
+        // UI Controls
+        document.getElementById('startStt').addEventListener('click', () => {
+            if (recognition) {
+                recognition.start();
+                updateStatus('Status: Listening...');
+            }
+        });
+        
+        document.getElementById('stopStt').addEventListener('click', () => {
+            if (recognition) {
+                recognition.stop();
+                updateStatus('Status: Stopped');
+            }
+        });
+        
+        document.getElementById('speak').addEventListener('click', () => {
+            const text = document.getElementById('ttsText').value;
+            const voiceIndex = document.getElementById('voiceSelect').value;
+            speak(text, voiceIndex);
+        });
+        
+        function speak(text, voiceIndex) {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (voices[voiceIndex]) {
+                utterance.voice = voices[voiceIndex];
+            }
+            speechSynthesis.speak(utterance);
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+        
+        // API Mode for C++ integration
+        function sendToCpp(type, data) {
+            // This would send data to C++ via a local server
+            // For now, we'll use a simple fetch to a local endpoint
+            fetch('http://localhost:8080/api/speech', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type, data })
+            }).catch(err => console.error('Failed to send to C++:', err));
+        }
+        
+        // Check if we're in API mode (URL parameter)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('mode') === 'api') {
+            isApiMode = true;
+            document.getElementById('apiControls').classList.remove('hidden');
+            document.querySelector('.controls').classList.add('hidden');
+            document.querySelector('.controls:nth-of-type(2)').classList.add('hidden');
+            
+            // Start recognition automatically in API mode
+            if (recognition) {
+                recognition.start();
+                updateStatus('API Mode: Listening for speech...');
+            }
+            
+            // Listen for TTS commands from C++
+            setInterval(() => {
+                fetch('http://localhost:8080/api/tts')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.text) {
+                            // Find voice by name
+                            const voiceIndex = voices.findIndex(v => v.name === data.voice);
+                            speak(data.text, voiceIndex >= 0 ? voiceIndex : 0);
+                        }
+                    })
+                    .catch(err => {
+                        // Ignore errors when no data is available
+                    });
+            }, 100);
+        }
+        
+        // Get available voices as JSON for C++
+        function getVoicesJson() {
+            return JSON.stringify(voices.map(v => ({
+                name: v.name,
+                lang: v.lang,
+                default: v.default
+            })));
+        }
+    </script>
+</body>
+</html>

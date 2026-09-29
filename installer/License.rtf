@@ -1,0 +1,30 @@
+{\rtf1\ansi\ansicpg1252\deff0
+{\fonttbl{\f0\fswiss\fcharset0 Segoe UI;}{\f1\fswiss\fcharset0 Segoe UI Semibold;}}
+\f0\fs18
+\f1\fs22 Sonny - End User License Agreement\f0\fs18\par
+\par
+This package installs the Sonny voice assistant (personal_assistant.exe) together with the runtime libraries and assets it needs to run on this machine.\par
+\par
+\b 1. Grant of use.\b0\par
+Sonny is provided for personal use on the machine where it is installed. You may keep, modify and redistribute the installer and its payload as permitted by the licenses of the components listed in section 3.\par
+\par
+\b 2. No warranty.\b0\par
+The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and non-infringement. The authors are not liable for any claim, damages or other liability arising from the use of the software.\par
+\par
+\b 3. Third-party components.\b0\par
+This package redistributes the following components, each governed by its own license:\par
+\par
+\bullet  llama.cpp - MIT License (LLM inference)\par
+\bullet  CTranslate2 / Whisper - MIT License (speech recognition)\par
+\bullet  ONNX Runtime - MIT License (VAD, wake word and Kokoro decoder inference)\par
+\bullet  Kokoro / misaki (kokoro-server) - see the upstream project (text to speech)\par
+\bullet  OpenBLAS - BSD-3-Clause License (BLAS kernels for the Kokoro iSTFT)\par
+\bullet  eSpeak NG - GNU GPL v3 (phonemizer used by Kokoro)\par
+\bullet  CUDA runtime libraries (cudart, cuBLAS, cuBLASLt) - NVIDIA software license agreement\par
+\bullet  Microsoft Visual C++ runtime libraries - Microsoft redistributable terms\par
+\par
+The large language model (.gguf), the voice and wake-word models are NOT part of this package; they are supplied separately by the user and remain subject to their own terms.\par
+\par
+\b 4. Data.\b0\par
+Settings, browser profile and RAG index are written to %APPDATA%\\Sonny and are removed when the product is uninstalled.\par
+}

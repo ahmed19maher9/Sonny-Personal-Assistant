@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonny Mesh Network</title>
+    <script type="text/javascript" src="vis-network.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; }
+        #mesh-container { width: 100vw; height: 100vh; }
+        .vis-network { background: #0f172a !important; }
+        .node-label { color: #e2e8f0 !important; font-size: 12px !important; }
+        .edge-label { color: #94a3bc !important; font-size: 10px !important; }
+        .legend { position: absolute; top: 10px; right: 10px; background: rgba(15,23,42,0.8); padding: 8px 12px; border-radius: 6px; font-size: 11px; color: #94a3bc; }
+        .legend .local { color: #3b82f6; }
+        .legend .peer { color: #10b981; }
+        .vis-tooltip {
+            font-size: 12px !important;
+            line-height: 1.4 !important;
+            color: #0f172a !important;
+            background: #e2e8f0 !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 4px !important;
+            padding: 6px 10px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="mesh-container"></div>
+    <div class="legend">
+        <div><span class="local">●</span> This node</div>
+        <div><span class="peer">●</span> Peer node</div>
+    </div>
+    <script>
+        window.meshData = { v: 1, room: "default", node_id: "", peers: [] };
+
+        function renderMesh(data) {
+            var container = document.getElementById('mesh-container');
+            if (!data || !data.peers) {
+                container.innerHTML = '<div style="color:#94a3bc;padding:40px;text-align:center;">No mesh data</div>';
+                return;
+            }
+
+            var nodes = new vis.DataSet();
+            var localId = data.node_id || 'local';
+
+            // Add local node (blue)
+            nodes.add({
+                id: localId,
+                label: localId.substring(0, 12),
+                title: localId + ' (local)\nRoom: ' + (data.room || 'default') + '\nStatus: LOCAL',
+                color: {
+                    border: '#3b82f6',
+                    background: '#1e293b',
+                    highlight: { border: '#60a5fa', background: '#33415e' }
+                },
+                font: { color: '#e2e8f0', size: 12 },
+                shape: 'box',
+                borderWidth: 2
+            });
+
+            var peerCount = 0;
+            data.peers.forEach(function(peer) {
+                if (!peer.node_id) return;
+                peerCount++;
+                var online = peer.last_sync_unix > 0 && (Date.now()/1000 - peer.last_sync_unix < 300);
+                var statusColor = online ? '#10b981' : '#ef4444';
+                nodes.add({
+                    id: peer.node_id,
+                    label: peer.node_id.substring(0, 12),
+                title: peer.node_id + ' (peer)\n' +
+                    'Host: ' + (peer.host || 'relay') + ':' + (peer.port || 0) + '\n' +
+                    'Brain: ' + (peer.brain_model || 'unknown') + '\n' +
+                    'Embedding: ' + (peer.embedding_model || 'none') + '\n' +
+                    'Dim: ' + (peer.embedding_dim || 0) + '\n' +
+                    'Syncs: ' + (peer.sync_count_24h || 0) + '\n' +
+                    'Reputation: ' + (peer.reputation != null ? peer.reputation.toFixed(2) : '0.00') + '\n' +
+                    'Embeddings: ' + (peer.compatible_embeddings ? 'compatible' : 'incompatible') + '\n' +
+                    'LoRA: ' + (peer.compatible_lora ? 'compatible' : 'none'),
+                    color: {
+                        border: statusColor,
+                        background: '#1e293b',
+                        highlight: { border: statusColor, background: '#33415e' }
+                    },
+                    font: { color: '#e2e8f0', size: 12 },
+                    shape: 'box'
+                });
+            });
+
+            var edges = [];
+            var nodeIds = nodes.getIds();
+            for (var i = 1; i < nodeIds.length; i++) {
+                edges.push({
+                    from: localId,
+                    to: nodeIds[i],
+                    color: { color: '#33415e', opacity: 0.6 },
+                    width: 2
+                });
+            }
+
+            var network = new vis.Network(container, {
+                nodes: nodes,
+                edges: edges
+            }, {
+                layout: {
+                    hierarchical: false,
+                    improvedLayout: true
+                },
+                physics: {
+                    enabled: true,
+                    stabilization: { iterations: 100 },
+                    repulsion: { nodeDistance: 150 }
+                },
+                interaction: {
+                    navigationButtons: true,
+                    hover: true,
+                    tooltipDelay: 200
+                },
+                nodes: {
+                    widthConstraint: { minimum: 100, maximum: 160 }
+                }
+            });
+
+            if (peerCount === 0) {
+                container.title = 'No remote peers connected. Ensure WAN mode is enabled and the relay is reachable.';
+            }
+        }
+
+        if (window.meshData && window.meshData.peers) {
+            renderMesh(window.meshData);
+        } else {
+            document.getElementById('mesh-container').innerHTML =
+                '<div style="color:#94a3bc;padding:40px;text-align:center;">Waiting for mesh data...</div>';
+        }
+    </script>
+</body>
+</html>

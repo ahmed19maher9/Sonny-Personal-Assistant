@@ -1,0 +1,203 @@
+#include <windows.h>
+#include "resource_ids.h"
+
+IDI_APP_ICON ICON "logo.ico"
+
+IDD_SETTINGS_TABBED DIALOGEX 0, 0, 350, 520
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Sonny Settings"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    CONTROL         "", IDC_SETTINGS_TAB, "SysTabControl32", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 5, 5, 340, 480
+    DEFPUSHBUTTON   "OK", IDOK, 140, 495, 50, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 200, 495, 50, 14
+END
+
+// Tab 1: AI & Voice
+IDD_TAB_AI_VOICE DIALOGEX 0, 0, 330, 500
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "MS Shell Dlg"
+BEGIN
+    GROUPBOX        "Llama Model", IDC_STATIC, 10, 10, 310, 40
+    LTEXT           "Model Path:", IDC_STATIC, 20, 25, 60, 10
+    EDITTEXT        IDC_TAB_AI_VOICE_LLAMA_MODEL, 85, 22, 180, 14, ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...", IDC_TAB_AI_VOICE_BROWSE_LLAMA, 270, 22, 35, 14
+    
+    GROUPBOX        "TTS Voice", IDC_STATIC, 10, 60, 310, 30
+    LTEXT           "Voice Name:", IDC_STATIC, 20, 75, 60, 10
+    COMBOBOX        IDC_TAB_AI_VOICE_KOKORO_VOICE, 85, 72, 220, 100, CBS_DROPDOWNLIST | WS_VSCROLL
+    
+    GROUPBOX        "Language", IDC_STATIC, 10, 100, 310, 30
+    LTEXT           "TTS/STT Language:", IDC_STATIC, 20, 115, 60, 10
+    COMBOBOX        IDC_TAB_AI_VOICE_LANGUAGE, 85, 112, 220, 100, CBS_DROPDOWNLIST | WS_VSCROLL
+    
+    GROUPBOX        "TTS Speed", IDC_STATIC, 10, 140, 310, 30
+    LTEXT           "Speech Speed:", IDC_STATIC, 20, 155, 60, 10
+    EDITTEXT        IDC_TAB_AI_VOICE_TTS_SPEED, 85, 152, 50, 14, ES_AUTOHSCROLL | WS_BORDER
+    LTEXT           "(1.0=normal, 1.15=balanced)", IDC_STATIC, 145, 155, 100, 10
+    
+    GROUPBOX        "Microphone Gain", IDC_STATIC, 10, 180, 310, 30
+    LTEXT           "Input Gain:", IDC_STATIC, 20, 195, 60, 10
+    EDITTEXT        IDC_TAB_AI_VOICE_MIC_GAIN, 85, 192, 50, 14, ES_AUTOHSCROLL | WS_BORDER
+    LTEXT           "(1.0=unity, 3.0=+9.5dB, 5.0=+14dB)", IDC_STATIC, 145, 195, 150, 10
+END
+
+// Tab 2: Browser STT/TTS
+IDD_TAB_BROWSER_STT_TTS DIALOGEX 0, 0, 330, 500
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "MS Shell Dlg"
+BEGIN
+    GROUPBOX        "Browser STT/TTS (No API Key Required)", IDC_STATIC, 10, 10, 310, 80
+    AUTOCHECKBOX    "Use Browser for Speech-to-Text", IDC_TAB_BROWSER_STT, 20, 25, 200, 10
+    AUTOCHECKBOX    "Use Browser for Text-to-Speech", IDC_TAB_BROWSER_TTS, 20, 40, 200, 10
+    LTEXT           "Browser Voice:", IDC_STATIC, 20, 55, 60, 10
+    COMBOBOX        IDC_TAB_BROWSER_VOICE, 85, 52, 220, 100, CBS_DROPDOWNLIST | WS_VSCROLL
+END
+
+// Tab 3: Avatar & Prompt
+IDD_TAB_AVATAR_PROMPT DIALOGEX 0, 0, 330, 500
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "MS Shell Dlg"
+BEGIN
+    GROUPBOX        "Avatar", IDC_STATIC, 10, 10, 310, 55
+    AUTOCHECKBOX    "Show Avatar", IDC_TAB_AVATAR_SHOW, 20, 22, 100, 10
+    AUTORADIOBUTTON "Sonny", IDC_TAB_AVATAR_SONNY, 30, 35, 60, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "Iron Man", IDC_TAB_AVATAR_IRONMAN, 110, 35, 60, 10
+
+    GROUPBOX        "Vision", IDC_STATIC, 10, 75, 310, 55
+    AUTOCHECKBOX    "Enable Camera Feed", IDC_TAB_VISION_CAMERA_ENABLED, 20, 87, 200, 10
+    LTEXT           "Camera:", IDC_STATIC, 20, 102, 40, 10
+    COMBOBOX        IDC_TAB_VISION_CAMERA_DEVICE, 65, 99, 240, 100, CBS_DROPDOWNLIST | WS_VSCROLL
+
+    GROUPBOX        "System Prompt", IDC_STATIC, 10, 140, 310, 100
+    EDITTEXT        IDC_TAB_AVATAR_SYSTEM_PROMPT, 20, 155, 290, 70, ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL
+END
+
+// Tab 4: RAG Engine
+IDD_TAB_RAG_ENGINE DIALOGEX 0, 0, 330, 500
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "MS Shell Dlg"
+BEGIN
+    GROUPBOX        "RAG Engine (Vector Memory)", IDC_STATIC, 10, 10, 310, 40
+    LTEXT           "Embedding Model:", IDC_STATIC, 20, 25, 80, 10
+    EDITTEXT        IDC_TAB_RAG_EMBEDDING_MODEL, 105, 22, 160, 14, ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...", IDC_TAB_RAG_BROWSE_MODEL, 270, 22, 35, 14
+    
+    AUTOCHECKBOX    "Enable Wake Word Detection", IDC_TAB_RAG_WAKE_WORD, 20, 70, 280, 10
+    AUTOCHECKBOX    "Debug Mode (performance timing)", IDC_TAB_RAG_DEBUG_MODE, 20, 85, 200, 10
+    
+    GROUPBOX        "Retrieval Budget", IDC_STATIC, 10, 110, 310, 30
+    LTEXT           "Context chars:", IDC_STATIC, 20, 125, 60, 10
+    EDITTEXT        IDC_TAB_RAG_CONTEXT_BUDGET, 85, 122, 50, 14, ES_AUTOHSCROLL | WS_BORDER
+    LTEXT           "(default 1500; the old fixed limit was 500)", IDC_STATIC, 145, 125, 160, 10
+END
+
+// Tab 5: Vectors (Sync)
+IDD_TAB_VECTORS DIALOGEX 0, 0, 330, 500
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "MS Shell Dlg"
+BEGIN
+    GROUPBOX        "Vectors/LoRA adapters sync", IDC_STATIC, 10, 10, 310, 70
+    AUTOCHECKBOX    "Enable Vectors/LoRA sync", IDC_TAB_VECTORS_ENABLED, 20, 25, 200, 10
+    LTEXT           "Mode:", IDC_STATIC, 20, 45, 25, 10
+    COMBOBOX        IDC_TAB_VECTORS_MODE, 48, 42, 80, 60, CBS_DROPDOWNLIST | WS_VSCROLL
+    LTEXT           "Room:", IDC_STATIC, 140, 45, 25, 10
+    EDITTEXT        IDC_TAB_VECTORS_ROOM, 168, 42, 127, 14, ES_AUTOHSCROLL
+    LTEXT           "Relay URL (WAN):", IDC_STATIC, 20, 65, 60, 10
+    EDITTEXT        IDC_TAB_VECTORS_RELAY, 85, 62, 210, 14, ES_AUTOHSCROLL
+END
+
+IDD_SETTINGS_DIALOG DIALOGEX 0, 0, 320, 645
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Sonny Settings"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    GROUPBOX        "Llama Model", IDC_STATIC, 10, 10, 300, 40
+    LTEXT           "Model Path:", IDC_STATIC, 20, 25, 60, 10
+    EDITTEXT        IDC_LLAMA_MODEL, 85, 22, 180, 14, ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...", IDC_BROWSE_LLAMA, 270, 22, 35, 14
+    
+    GROUPBOX        "TTS Voice", IDC_STATIC, 10, 60, 300, 30
+    LTEXT           "Voice Name:", IDC_STATIC, 20, 75, 60, 10
+    COMBOBOX        IDC_KOKORO_VOICE, 85, 72, 220, 100, CBS_DROPDOWNLIST | WS_VSCROLL
+    
+    GROUPBOX        "Language", IDC_STATIC, 10, 100, 300, 30
+    LTEXT           "TTS/STT Language:", IDC_STATIC, 20, 115, 60, 10
+    COMBOBOX        IDC_LANGUAGE, 85, 112, 220, 100, CBS_DROPDOWNLIST | WS_VSCROLL
+    
+    GROUPBOX        "TTS Speed", IDC_STATIC, 10, 140, 300, 30
+    LTEXT           "Speech Speed:", IDC_STATIC, 20, 155, 60, 10
+    EDITTEXT        IDC_TTS_SPEED, 85, 152, 50, 14, ES_AUTOHSCROLL | WS_BORDER
+    LTEXT           "(1.0=normal, 1.15=balanced)", IDC_STATIC, 145, 155, 100, 10
+    
+    GROUPBOX        "Microphone Gain", IDC_STATIC, 10, 180, 300, 30
+    LTEXT           "Input Gain:", IDC_STATIC, 20, 195, 60, 10
+    EDITTEXT        IDC_MIC_GAIN, 85, 192, 50, 14, ES_AUTOHSCROLL | WS_BORDER
+    LTEXT           "(1.0=unity, 3.0=+9.5dB, 5.0=+14dB)", IDC_STATIC, 145, 195, 150, 10
+
+GROUPBOX        "Browser STT/TTS (No API Key Required)", IDC_STATIC, 10, 220, 300, 60
+    AUTOCHECKBOX    "Use Browser for Speech-to-Text", IDC_USE_BROWSER_STT, 20, 235, 200, 10
+    AUTOCHECKBOX    "Use Browser for Text-to-Speech", IDC_USE_BROWSER_TTS, 20, 250, 200, 10
+    LTEXT           "Browser Voice:", IDC_STATIC, 20, 265, 60, 10
+    COMBOBOX        IDC_BROWSER_VOICE, 85, 262, 220, 100, CBS_DROPDOWNLIST | WS_VSCROLL
+    
+    GROUPBOX        "Avatar", IDC_STATIC, 10, 290, 300, 55
+    AUTOCHECKBOX    "Show Avatar", IDC_SHOW_AVATAR, 20, 302, 100, 10
+    AUTORADIOBUTTON "Sonny", IDC_AVATAR_SONNY, 30, 315, 60, 10, WS_GROUP | WS_TABSTOP
+    AUTORADIOBUTTON "Iron Man", IDC_AVATAR_IRONMAN, 110, 315, 60, 10
+    
+    GROUPBOX        "System Prompt", IDC_STATIC, 10, 355, 300, 50
+    EDITTEXT        IDC_SYSTEM_PROMPT, 20, 355, 280, 30, ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL
+    
+    GROUPBOX        "RAG Engine (Vector Memory)", IDC_STATIC, 10, 415, 300, 40
+    LTEXT           "Embedding Model:", IDC_STATIC, 20, 430, 80, 10
+    EDITTEXT        IDC_RAG_EMBEDDING_MODEL, 105, 427, 160, 14, ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...", IDC_BROWSE_RAG_MODEL, 270, 427, 35, 14
+    
+    AUTOCHECKBOX    "Enable Wake Word Detection (requires restart)", IDC_WAKE_WORD_ENABLED, 20, 460, 280, 10
+    AUTOCHECKBOX    "Debug Mode (performance timing)", IDC_DEBUG_MODE, 20, 475, 200, 10
+    
+    GROUPBOX        "Retrieval Budget", IDC_STATIC, 10, 490, 300, 30
+    LTEXT           "Context chars:", IDC_STATIC, 20, 505, 60, 10
+    EDITTEXT        IDC_RAG_CONTEXT_BUDGET, 85, 502, 50, 14, ES_AUTOHSCROLL | WS_BORDER
+    LTEXT           "(default 1500; the old fixed limit was 500)", IDC_STATIC, 145, 505, 160, 10
+    
+    GROUPBOX        "Vectors (peer network - counters only, never content)", IDC_STATIC, 10, 525, 300, 75
+    AUTOCHECKBOX    "Enable peer metrics network", IDC_VECTORS_ENABLED, 20, 538, 200, 10
+    LTEXT           "Mode:", IDC_STATIC, 20, 553, 25, 10
+    COMBOBOX        IDC_VECTORS_MODE, 48, 550, 80, 60, CBS_DROPDOWNLIST | WS_VSCROLL
+    LTEXT           "Room:", IDC_STATIC, 140, 553, 25, 10
+    EDITTEXT        IDC_VECTORS_ROOM, 168, 550, 127, 14, ES_AUTOHSCROLL
+    LTEXT           "Relay URL (WAN):", IDC_STATIC, 20, 571, 60, 10
+    EDITTEXT        IDC_VECTORS_RELAY, 85, 568, 210, 14, ES_AUTOHSCROLL
+    AUTOCHECKBOX    "Share tool success/latency counters", IDC_VECTORS_SHARE_METRICS, 20, 587, 220, 10
+    
+    DEFPUSHBUTTON   "OK", IDOK, 120, 612, 50, 14
+    PUSHBUTTON      "Cancel", IDCANCEL, 180, 612, 50, 14
+END
+
+IDD_FIRST_RUN_WIZARD DIALOGEX 0, 0, 320, 280
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Welcome to Sonny - Setup"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    GROUPBOX        "Llama Model", IDC_STATIC, 10, 10, 300, 50
+    LTEXT           "Model Path:", IDC_STATIC, 20, 25, 60, 10
+    EDITTEXT        IDC_WIZARD_MODEL, 85, 22, 180, 14, ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...", IDC_WIZARD_BROWSE_MODEL, 270, 22, 35, 14
+
+    GROUPBOX        "TTS Voice", IDC_STATIC, 10, 65, 300, 30
+    LTEXT           "Voice:", IDC_STATIC, 20, 80, 40, 10
+    COMBOBOX        IDC_WIZARD_VOICE, 85, 77, 220, 100, CBS_DROPDOWNLIST | WS_VSCROLL
+
+    GROUPBOX        "Avatar", IDC_STATIC, 10, 100, 300, 40
+    AUTORADIOBUTTON "Sonny", IDC_WIZARD_AVATAR_SONNY, 30, 115, 60, 10
+    AUTORADIOBUTTON "Iron Man", IDC_WIZARD_AVATAR_IRONMAN, 110, 115, 60, 10
+
+    GROUPBOX        "Language", IDC_STATIC, 10, 145, 300, 30
+    LTEXT           "Language:", IDC_STATIC, 20, 160, 50, 10
+    COMBOBOX        IDC_WIZARD_LANGUAGE, 85, 157, 220, 100, CBS_DROPDOWNLIST | WS_VSCROLL
+
+    PUSHBUTTON      "Skip setup and use defaults", IDC_WIZARD_SKIP, 50, 210, 100, 14
+    DEFPUSHBUTTON   "Next", IDOK, 160, 210, 50, 14
+END

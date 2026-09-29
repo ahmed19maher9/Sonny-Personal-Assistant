@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sonny MSI payload definition.
+
+  Path conventions - WiX resolves the two forms differently, so both are used
+  deliberately below:
+    - <File Source="...">     relative to the working directory, i.e. the project
+                              root (build_installer.bat runs "wix build" from the
+                              repository root, see its "cd /d %~dp0").
+    - <Files Include="..."/>  relative to THIS file's directory (installer\),
+                              hence the "..\" prefixes. Used to graft whole
+                              asset trees (Kokoro voice/phonemizer data) into the
+                              package without listing hundreds of files.
+
+  llama.cpp (CPU + CUDA + Vulkan backends) is now statically linked into
+  personal_assistant.exe, so the former llama.dll / ggml*.dll payload is gone.
+  GPU support only needs the CUDA runtime DLLs (cuBLAS, cuBLASLt, cudart). The
+  Vulkan loader (vulkan-1.dll) is NOT part of this payload: it belongs to the
+  graphics driver, which installs it into C:\Windows\System32, and shipping an
+  app-local copy would shadow that newer system loader.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Sonny"
+           Manufacturer="Sony"
+           Version="1.0.0.0"
+           UpgradeCode="5ad67def-2c01-4a16-8c6a-256de9d9a092"
+           InstallerVersion="500">
+
+     <MediaTemplate EmbedCab="yes" />
+
+     <MajorUpgrade DowngradeErrorMessage="A newer version of Sonny is already installed." />
+
+     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+     <Feature Id="ProductFeature" Title="Sonny" Level="1">
+       <ComponentGroupRef Id="ProductComponents" />
+       <ComponentGroupRef Id="GpuRuntimeDLLs" />
+       <ComponentGroupRef Id="KokoroRuntimeDLLs" />
+       <ComponentGroupRef Id="CT2DLLs" />
+       <ComponentGroupRef Id="ONNXDLLs" />
+       <ComponentGroupRef Id="Assets" />
+       <ComponentGroupRef Id="Avatars" />
+       <ComponentGroupRef Id="Videos" />
+       <ComponentGroupRef Id="Sounds" />
+       <ComponentGroupRef Id="ModelsDirectory" />
+       <ComponentGroupRef Id="WhisperModels" />
+       <ComponentGroupRef Id="WakeWordModels" />
+       <ComponentGroupRef Id="KokoroConfig" />
+       <ComponentGroupRef Id="KokoroOnnxModels" />
+       <ComponentGroupRef Id="KokoroVoices" />
+       <ComponentGroupRef Id="KokoroEspeakData" />
+       <ComponentGroupRef Id="KokoroLexicon" />
+       <ComponentRef Id="ShortcutComponent" />
+       <ComponentRef Id="SonnyConfigComponent" />
+     </Feature>
+
+     <StandardDirectory Id="ProgramFilesFolder">
+   <Directory Id="INSTALLFOLDER" Name="Sonny">
+     <Directory Id="AVATARSDIR" Name="avatars" />
+     <Directory Id="VIDEOSDIR" Name="videos" />
+     <Directory Id="SOUNDSDIR" Name="sounds" />
+     <Directory Id="MODELSDIR" Name="models">
+       <Directory Id="WHISPERDIR" Name="whisper-base-ct2" />
+       <Directory Id="WAKEWORDDIR" Name="openwakeword" />
+     </Directory>
+     <!-- Production layout: main.cpp resolves the TTS assets to
+          <install dir>\kokoro (development uses <repo>\models\kokoro). -->
+     <Directory Id="KOKORODIR" Name="kokoro">
+       <Directory Id="KOKORO82MDIR" Name="Kokoro-82M" />
+       <Directory Id="KOKOROONNXDIR" Name="onnx" />
+       <Directory Id="KOKOROVOICESDIR" Name="voices_npy" />
+       <Directory Id="KOKOROESPEAKDIR" Name="espeak-ng-data" />
+       <Directory Id="KOKOROMISAKIDIR" Name="misaki-data" />
+     </Directory>
+   </Directory>
+ </StandardDirectory>
+
+     <StandardDirectory Id="DesktopFolder" />
+     <StandardDirectory Id="ProgramMenuFolder" />
+   </Package>
+
+   <Fragment>
+     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+       <Component Id="MainExecutable" Guid="*">
+         <File Id="personal_assistant.exe"
+               Source="build\Release\personal_assistant.exe"
+               KeyPath="yes" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <ComponentGroup Id="Assets" Directory="INSTALLFOLDER">
+       <Component Id="WebSpeech" Guid="*">
+         <File Id="web_speech.html" Source="build\Release\web\web_speech.html" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <!-- GPU runtime: the CUDA and Vulkan ggml backends are compiled into the
+        executable, so only their redistributable runtime DLLs ship here.
+        vulkan-1.dll is deliberately absent - the Vulkan loader is installed by
+        the graphics driver into C:\Windows\System32. -->
+   <Fragment>
+     <ComponentGroup Id="GpuRuntimeDLLs" Directory="INSTALLFOLDER">
+       <Component Id="GpuRuntimeDLLs" Guid="12345678-1234-1234-1234-123456789ABC">
+         <File Id="cudart64_12.dll" Source="build\Release\cudart64_12.dll" KeyPath="yes" />
+         <File Id="cublas64_12.dll" Source="build\Release\cublas64_12.dll" />
+         <File Id="cublasLt64_12.dll" Source="build\Release\cublasLt64_12.dll" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <!-- Kokoro TTS runs in-process: native espeak-ng phonemizer + OpenBLAS iSTFT.
+        onnxruntime.dll is shared with the STT/wake-word engines (ONNXDLLs). -->
+   <Fragment>
+     <ComponentGroup Id="KokoroRuntimeDLLs" Directory="INSTALLFOLDER">
+       <Component Id="KokoroRuntimeDLLs" Guid="DDDD4444-EEEE-5555-6666-777777777777">
+         <File Id="libespeak_ng.dll" Source="build\Release\libespeak-ng.dll" />
+         <File Id="openblas.dll" Source="build\Release\openblas.dll" KeyPath="yes" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <ComponentGroup Id="CT2DLLs" Directory="INSTALLFOLDER">
+       <Component Id="CT2DLLs" Guid="A1111111-1111-2222-3333-444444444444">
+         <File Id="ctranslate2.dll" Source="build\Release\ctranslate2.dll" KeyPath="yes" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <ComponentGroup Id="ONNXDLLs" Directory="INSTALLFOLDER">
+       <Component Id="ONNXDLLs" Guid="B1111111-1111-2222-3333-444444444444">
+         <File Id="onnxruntime.dll" Source="build\Release\onnxruntime.dll" KeyPath="yes" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <ComponentGroup Id="Avatars" Directory="AVATARSDIR">
+       <Component Id="Avatars" Guid="FEDCBA09-8765-4321-FEDC-BA0987654321">
+         <File Id="sonny_avatar" Source="build\Release\avatars\sonny.glb" KeyPath="yes" />
+         <File Id="ironman_avatar" Source="build\Release\avatars\iron-man.glb" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <ComponentGroup Id="Videos" Directory="VIDEOSDIR">
+       <Component Id="Videos" Guid="AAAA1111-BBBB-CCCC-DDDD-EEEEFFFF2222">
+         <File Id="logo_loading_green" Source="build\Release\videos\logo-loading-green.wmv" KeyPath="yes" />
+         <File Id="logo_start_green" Source="build\Release\videos\logo-start-green.wmv" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <ComponentGroup Id="Sounds" Directory="SOUNDSDIR">
+       <Component Id="Sounds" Guid="AAAA2222-BBBB-CCCC-DDDD-EEEEFFFF1111">
+         <File Id="sonny" Source="build\Release\sounds\sonny.wav" KeyPath="yes" />
+         <File Id="sonny_my_name_is_sonny" Source="build\Release\sounds\sonny_my_name_is_sonny.wav" />
+         <File Id="sonny_yes" Source="build\Release\sounds\sonny_yes.wav" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+      <ComponentGroup Id="ModelsDirectory" Directory="MODELSDIR">
+        <Component Id="ModelsDir" Guid="CCCC3333-DDDD-4444-5555-666666666666">
+          <CreateFolder />
+          <RemoveFolder Id="RemoveModelsDir" On="uninstall" Directory="MODELSDIR" />
+          <File Id="silero_vad" Source="build\Release\models\silero_vad.onnx" KeyPath="yes" />
+        </Component>
+      </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <ComponentGroup Id="WhisperModels" Directory="WHISPERDIR">
+       <Component Id="WhisperModels" Guid="EEEE5555-FFFF-6666-7777-888888888888">
+         <File Id="whisper_config" Source="build\Release\models\whisper-base-ct2\config.json" KeyPath="yes" />
+         <File Id="whisper_model" Source="build\Release\models\whisper-base-ct2\model.bin" />
+         <File Id="whisper_tokenizer" Source="build\Release\models\whisper-base-ct2\tokenizer.json" />
+         <File Id="whisper_vocabulary" Source="build\Release\models\whisper-base-ct2\vocabulary.txt" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <ComponentGroup Id="WakeWordModels" Directory="WAKEWORDDIR">
+        <Component Id="WakeWordModels" Guid="FFFF6666-7777-8888-9999-AAAAAAAAAAAA">
+          <File Id="wakeword_melspectrogram" Source="build\Release\models\openwakeword\melspectrogram.onnx" KeyPath="yes" />
+          <File Id="wakeword_embedding" Source="build\Release\models\openwakeword\embedding_model.onnx" />
+          <File Id="wakeword_sonny" Source="build\Release\models\openwakeword\sonny.onnx" />
+        </Component>
+     </ComponentGroup>
+   </Fragment>
+
+    <!-- Kokoro TTS data. KokoroWrapper::initialize() probes these exact paths
+         below the model directory (<install dir>\kokoro in production):
+           Kokoro-82M/config.json, onnx/{kokoro_encoder,har_generator,
+           kokoro_decoder}.onnx, voices_npy/, espeak-ng-data/, misaki-data/
+         The CMakeLists.txt POST_BUILD steps assemble a ready-to-ship kokoro/
+         tree in build\Release\kokoro, excluding the 3.2 GB PyTorch checkpoint
+         and .pt voice files (ONNX-inference only) and dev-only leftovers
+         (*.lib, *.obj, helper DLLs, kokoro-cli.exe).
+         The voice/phonemizer trees are grafted in with <Files>, which is a
+         directory-relative pattern (see the note at the top of this file) and
+         keeps the nested layout of espeak-ng-data (lang\*, voices\*). -->
+    <Fragment>
+      <ComponentGroup Id="KokoroConfig" Directory="KOKORO82MDIR">
+        <Component Id="KokoroConfig" Guid="BBBB7777-8888-9999-AAAA-BBBBBBBBBBBB">
+          <File Id="kokoro_config" Source="build\Release\kokoro\Kokoro-82M\config.json" KeyPath="yes" />
+        </Component>
+      </ComponentGroup>
+    </Fragment>
+
+    <Fragment>
+      <ComponentGroup Id="KokoroOnnxModels" Directory="KOKOROONNXDIR">
+        <Component Id="KokoroOnnxModels" Guid="CCCC8888-9999-AAAA-BBBB-CCCCCCCCCCCC">
+          <File Id="kokoro_encoder" Source="build\Release\kokoro\onnx\kokoro_encoder.onnx" KeyPath="yes" />
+          <File Id="kokoro_decoder" Source="build\Release\kokoro\onnx\kokoro_decoder.onnx" />
+          <File Id="har_generator" Source="build\Release\kokoro\onnx\har_generator.onnx" />
+        </Component>
+      </ComponentGroup>
+    </Fragment>
+
+    <Fragment>
+      <ComponentGroup Id="KokoroVoices" Directory="KOKOROVOICESDIR">
+        <Files Include="..\build\Release\kokoro\voices_npy\*" />
+      </ComponentGroup>
+    </Fragment>
+
+    <Fragment>
+      <ComponentGroup Id="KokoroEspeakData" Directory="KOKOROESPEAKDIR">
+        <Files Include="..\build\Release\kokoro\espeak-ng-data\**" />
+      </ComponentGroup>
+    </Fragment>
+
+    <Fragment>
+      <ComponentGroup Id="KokoroLexicon" Directory="KOKOROMISAKIDIR">
+        <Files Include="..\build\Release\kokoro\misaki-data\**" />
+      </ComponentGroup>
+    </Fragment>
+
+   <Fragment>
+     <DirectoryRef Id="INSTALLFOLDER">
+       <Component Id="ShortcutComponent" Guid="*">
+         <Shortcut Id="DesktopShortcut"
+                   Name="Sonny"
+                   Description="Voice-enabled AI Assistant"
+                   Target="[#personal_assistant.exe]"
+                   WorkingDirectory="INSTALLFOLDER"
+                   Directory="DesktopFolder" />
+         <Shortcut Id="StartMenuShortcut"
+                   Name="Sonny"
+                   Description="Voice-enabled AI Assistant"
+                   Target="[#personal_assistant.exe]"
+                   WorkingDirectory="INSTALLFOLDER"
+                   Directory="ProgramMenuFolder" />
+         <RegistryValue Root="HKCU"
+                        Key="Software\Sony\Sonny"
+                        Name="installed"
+                        Type="integer"
+                        Value="1"
+                        KeyPath="yes" />
+       </Component>
+      </DirectoryRef>
+    </Fragment>
+
+   <Fragment>
+     <!-- ConfigManager::get_config_path() writes config.ini to
+          %APPDATA%\Sonny (CSIDL_APPDATA = roaming), not %LOCALAPPDATA%. -->
+     <StandardDirectory Id="AppDataFolder">
+       <Directory Id="SonnyConfigDir" Name="Sonny">
+         <Component Id="SonnyConfigComponent" Guid="A1111111-B222-CCCC-DDDD-EEEEFFFF1111">
+           <RemoveFile Id="RemoveConfigIni" Name="config.ini" On="uninstall" />
+           <RemoveFolder Id="RemoveSonnyDir" On="uninstall" Directory="SonnyConfigDir" />
+         </Component>
+       </Directory>
+     </StandardDirectory>
+   </Fragment>
+ </Wix>
+
+

@@ -1,0 +1,72 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+.wix/
+.kilo/
+
+# Resources (can be large)
+resources/models/
+resources/rag_data/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Logs
+*.log
+
+# Dependencies
+external/
+installer_output/
+installer/generated/
+venv/
+__pycache__/
+*.pyc
+*.glb
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~

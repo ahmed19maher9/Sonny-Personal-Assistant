@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonny Mesh</title>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #header {
+            padding: 10px 20px;
+            background-color: #2d2d2d;
+            border-bottom: 1px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        #header h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #4fc3f7;
+        }
+        #controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            padding: 6px 12px;
+            background-color: #444;
+            color: #e0e0e0;
+            border: 1px solid #666;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        button:hover {
+            background-color: #555;
+        }
+        button.primary {
+            background-color: #0d47a1;
+            border-color: #1565c0;
+        }
+        button.primary:hover {
+            background-color: #1565c0;
+        }
+        #network-container {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+        }
+        #status {
+            font-size: 12px;
+            color: #888;
+        }
+        #stats {
+            font-size: 11px;
+            color: #666;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>Sonny Mesh Network</h1>
+        <div id="controls">
+            <span id="stats">Nodes: 0 | Edges: 0</span>
+            <button id="refresh" class="primary">Refresh</button>
+            <button id="fit">Fit View</button>
+            <button id="physics">Physics: On</button>
+        </div>
+    </div>
+    <div id="network-container"></div>
+
+    <script>
+        const nodes = new vis.DataSet([]);
+        const edges = new vis.DataSet([]);
+
+        const container = document.getElementById('network-container');
+        const data = { nodes: nodes, edges: edges };
+
+        const options = {
+            nodes: {
+                shape: 'dot',
+                size: 18,
+                font: { size: 12, color: '#e0e0e0', face: 'Arial' },
+                borderWidth: 2,
+                color: {
+                    border: '#4fc3f7',
+                    background: '#0d47a1',
+                    highlight: { border: '#ff9800', background: '#e65100' }
+                }
+            },
+            edges: {
+                color: { color: '#555', highlight: '#ff9800' },
+                width: 2,
+                smooth: { type: 'continuous' }
+            },
+            physics: {
+                stabilization: { iterations: 100 },
+                barnesHut: { gravitationalConstant: -3000, springLength: 120 }
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 200
+            }
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        function updateStats() {
+            document.getElementById('stats').textContent =
+                `Nodes: ${nodes.length} | Edges: ${edges.length}`;
+        }
+
+        function renderMesh(meshData) {
+            nodes.clear();
+            edges.clear();
+
+            if (!meshData || !meshData.nodes) return;
+
+            meshData.nodes.forEach(node => {
+                nodes.add({
+                    id: node.id,
+                    label: node.label || node.id,
+                    title: node.info || null,
+                    group: node.group || 'default'
+                });
+            });
+
+            if (meshData.edges) {
+                meshData.edges.forEach(edge => {
+                    edges.add({
+                        from: edge.from,
+                        to: edge.to,
+                        title: edge.info || null
+                    });
+                });
+            }
+
+            updateStats();
+        }
+
+        async function fetchMeshData() {
+            try {
+                const response = await fetch('/api/mesh');
+                if (response.ok) {
+                    const data = await response.json();
+                    renderMesh(data);
+                } else {
+                    console.error('Failed to fetch mesh data:', response.status);
+                }
+            } catch (err) {
+                console.error('Error fetching mesh data:', err);
+            }
+        }
+
+        document.getElementById('refresh').addEventListener('click', fetchMeshData);
+        document.getElementById('fit').addEventListener('click', () => network.fit());
+        document.getElementById('physics').addEventListener('click', function() {
+            const physicsEnabled = !network.getOptions().physics.barnesHut;
+            network.setOptions({ physics: { enabled: physicsEnabled } });
+            this.textContent = `Physics: ${physicsEnabled ? 'On' : 'Off'}`;
+        });
+
+        network.on('click', function(params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const node = nodes.get(nodeId);
+                if (node && node.info) {
+                    alert(node.info);
+                }
+            }
+        });
+
+        fetchMeshData();
+        setInterval(fetchMeshData, 5000);
+    </script>
+</body>
+</html>
