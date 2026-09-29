@@ -80,7 +80,7 @@ bool AssistantOrchestrator::initialize(
     // Store base paths for resources
     videos_base_path_ = videos_base_path.empty() ? "..\\..\\videos\\" : videos_base_path;
     sounds_base_path_ = sounds_base_path.empty() ? "..\\..\\sounds\\" : sounds_base_path;
-    rag_embedding_model_path_ = rag_embedding_model_path.empty() ? "all-MiniLM-L6-v2"
+    rag_embedding_model_path_ = rag_embedding_model_path.empty() ? "bge-large-en-v1.5"
                                                                 : rag_embedding_model_path;
     
     std::cout << "Initializing Personal Assistant..." << std::endl;
@@ -123,7 +123,13 @@ bool AssistantOrchestrator::initialize(
     // Initialize Web Speech API server if browser STT or TTS is enabled
     if (use_browser_stt_ || use_browser_tts_) {
         std::cout << "Using Chrome Web Speech API for STT/TTS (browser-based)" << std::endl;
-        if (!web_speech_->initialize("resources/web/web_speech.html")) {
+        // main.cpp sets the current directory to the executable directory, so
+        // the installed layout is <install dir>\web\web_speech.html. The
+        // resources\ prefix only exists in a development build tree, so try
+        // both instead of hard-coding one and failing silently after install.
+        if (!web_speech_->initialize("web\\web_speech.html") &&
+            !web_speech_->initialize("web/web_speech.html") &&
+            !web_speech_->initialize("resources/web/web_speech.html")) {
             std::cerr << "Failed to initialize Web Speech API" << std::endl;
             if (use_browser_stt_) use_browser_stt_ = false;
             if (use_browser_tts_) use_browser_tts_ = false;

@@ -18,6 +18,15 @@
   Vulkan loader (vulkan-1.dll) is NOT part of this payload: it belongs to the
   graphics driver, which installs it into C:\Windows\System32, and shipping an
   app-local copy would shadow that newer system loader.
+
+  Architecture: this package must be built with "wix build -arch x64".
+  personal_assistant.exe is an x64 binary, and an x86 package would place it
+  under Program Files (x86) via the 32-bit ProgramFilesFolder redirection.
+
+  WebView2Loader.dll is NOT optional: the executable statically imports it
+  (MeshDialog drives the mesh viewer through the WebView2 COM API), so a
+  machine without it cannot even start Sonny. The Edge WebView2 *runtime*
+  itself is installed by Windows/Edge and is deliberately not shipped.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="Sonny"
@@ -26,6 +35,16 @@
            UpgradeCode="5ad67def-2c01-4a16-8c6a-256de9d9a092"
            InstallerVersion="500">
 
+     <!-- Icon SourceFile is resolved by the compiler against the working
+          directory (the repository root), unlike the <Files Include="...">
+          patterns below. -->
+     <Icon Id="SonnyIcon" SourceFile="resources\images\logo.ico" />
+     <Property Id="ARPPRODUCTICON" Value="SonnyIcon" />
+
+     <!-- EmbedCab keeps the result a single self-contained .msi. The default
+          LZX level is kept deliberately: lowering it only trades build time
+          for a much larger package (the ~1.8 GB payload already compresses
+          to ~875 MB at the default). -->
      <MediaTemplate EmbedCab="yes" />
 
      <MajorUpgrade DowngradeErrorMessage="A newer version of Sonny is already installed." />
@@ -33,8 +52,9 @@
      <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
 
      <Feature Id="ProductFeature" Title="Sonny" Level="1">
-       <ComponentGroupRef Id="ProductComponents" />
-       <ComponentGroupRef Id="GpuRuntimeDLLs" />
+        <ComponentGroupRef Id="ProductComponents" />
+        <ComponentGroupRef Id="WebView2Loader" />
+        <ComponentGroupRef Id="GpuRuntimeDLLs" />
        <ComponentGroupRef Id="KokoroRuntimeDLLs" />
        <ComponentGroupRef Id="CT2DLLs" />
        <ComponentGroupRef Id="ONNXDLLs" />
@@ -45,23 +65,35 @@
        <ComponentGroupRef Id="ModelsDirectory" />
        <ComponentGroupRef Id="WhisperModels" />
        <ComponentGroupRef Id="WakeWordModels" />
-       <ComponentGroupRef Id="KokoroConfig" />
-       <ComponentGroupRef Id="KokoroOnnxModels" />
-       <ComponentGroupRef Id="KokoroVoices" />
-       <ComponentGroupRef Id="KokoroEspeakData" />
-       <ComponentGroupRef Id="KokoroLexicon" />
-       <ComponentRef Id="ShortcutComponent" />
-       <ComponentRef Id="SonnyConfigComponent" />
-     </Feature>
+        <ComponentGroupRef Id="KokoroConfig" />
+        <ComponentGroupRef Id="KokoroOnnxModels" />
+        <ComponentGroupRef Id="KokoroVoices" />
+        <ComponentGroupRef Id="KokoroEspeakData" />
+        <ComponentGroupRef Id="KokoroLexicon" />
+        <ComponentGroupRef Id="MeshWebAssets" />
+        <ComponentGroupRef Id="EmbeddingModel" />
+        <ComponentGroupRef Id="Relay" />
+        <ComponentRef Id="ShortcutComponent" />
+        <ComponentRef Id="SonnyConfigComponent" />
+      </Feature>
 
      <StandardDirectory Id="ProgramFilesFolder">
    <Directory Id="INSTALLFOLDER" Name="Sonny">
+     <Directory Id="WEBDIR" Name="web" />
      <Directory Id="AVATARSDIR" Name="avatars" />
      <Directory Id="VIDEOSDIR" Name="videos" />
      <Directory Id="SOUNDSDIR" Name="sounds" />
      <Directory Id="MODELSDIR" Name="models">
        <Directory Id="WHISPERDIR" Name="whisper-base-ct2" />
        <Directory Id="WAKEWORDDIR" Name="openwakeword" />
+       <!-- RAG dense-retrieval model. Kept under its real name: the ONNX
+            export in resources\models is bge-large-en-v1.5, and the mesh
+            protocol reports this name to peers (VectorsSync), so shipping it
+            under a different directory name would misreport the model to
+            other nodes. RagEngine's default model key is still
+            "all-MiniLM-L6-v2", so a fresh install currently falls back to
+            BM25-only ranking until that default is pointed here. -->
+       <Directory Id="EMBEDDINGDIR" Name="bge-large-en-v1.5" />
      </Directory>
      <!-- Production layout: main.cpp resolves the TTS assets to
           <install dir>\kokoro (development uses <repo>\models\kokoro). -->
@@ -89,11 +121,72 @@
      </ComponentGroup>
    </Fragment>
 
+   <!-- personal_assistant.exe imports WebView2Loader.dll statically (see the
+        note at the top of this file), so it has to sit next to the exe or the
+        process fails to start. MeshDialog additionally probes it with
+        LoadLibraryA() to decide whether to show the mesh window. -->
+   <Fragment>
+     <ComponentGroup Id="WebView2Loader" Directory="INSTALLFOLDER">
+       <Component Id="WebView2LoaderComponent" Guid="9A1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D">
+         <File Id="WebView2Loader.dll"
+               Source="build\Release\WebView2Loader.dll"
+               KeyPath="yes" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <!-- The vectors rendezvous relay (tools/relay/SonnyRelay.cpp). Needed for
+        "wan" mode on networks where direct peer-to-peer is impossible; the app
+        never requires it, but shipping it keeps the installed product able to
+        host its own relay. -->
+   <Fragment>
+     <ComponentGroup Id="Relay" Directory="INSTALLFOLDER">
+       <Component Id="RelayComponent" Guid="7B2C3D4E-5F60-4A7B-8C9D-0E1F2A3B4C5D">
+         <File Id="sonny_relay.exe"
+               Source="build\Release\sonny_relay.exe"
+               KeyPath="yes" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <!-- web/ assets. web_speech.html is served by the local Web Speech API
+          HTTP server (AssistantOrchestrator starts it with the path
+          "resources/web/web_speech.html", resolved against the current
+          directory, which main.cpp sets to the executable directory), and
+          mesh.html + vis-network.min.js back the WebView2 mesh viewer, which
+          MeshDialog resolves as <exe dir>\web\mesh.html. All three have to
+          ship in web\ or those features silently fail to start. -->
+     <ComponentGroup Id="MeshWebAssets" Directory="WEBDIR">
+       <Component Id="WebSpeechHtml" Guid="*">
+         <File Id="web_speech_html" Source="build\Release\web\web_speech.html" KeyPath="yes" />
+       </Component>
+       <Component Id="MeshHtml" Guid="*">
+         <File Id="mesh_html" Source="build\Release\web\mesh.html" KeyPath="yes" />
+       </Component>
+       <Component Id="VisNetworkJs" Guid="*">
+         <File Id="vis_network_min_js" Source="build\Release\web\vis-network.min.js" KeyPath="yes" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
+   <Fragment>
+     <!-- RAG dense-retrieval model + WordPiece vocabulary. -->
+     <ComponentGroup Id="EmbeddingModel" Directory="EMBEDDINGDIR">
+       <Component Id="EmbeddingModelFiles" Guid="3D8E5A21-77B4-4C19-9F0E-2A6D51B8C3F0">
+         <File Id="embedding_model" Source="build\Release\models\bge-large-en-v1.5\model_int8.onnx" KeyPath="yes" />
+         <File Id="embedding_vocab" Source="build\Release\models\bge-large-en-v1.5\vocab.txt" />
+       </Component>
+     </ComponentGroup>
+   </Fragment>
+
    <Fragment>
      <ComponentGroup Id="Assets" Directory="INSTALLFOLDER">
-       <Component Id="WebSpeech" Guid="*">
-         <File Id="web_speech.html" Source="build\Release\web\web_speech.html" />
-       </Component>
+       <!-- resources.rc compiles the application icon and the settings /
+            first-run dialog templates into the executable, so nothing from
+            resources\ needs to be shipped loose. This group is kept only
+            because Feature references it; it intentionally installs nothing. -->
+       <Component Id="NoLooseResources" Guid="6C3D4E5F-6071-4B8C-9DAE-1F2A3B4C5D6E" />
      </ComponentGroup>
    </Fragment>
 

@@ -264,7 +264,12 @@ bool RagEngine::initialize(const std::string& python_path, const std::string& sc
     // Dense vectors are optional. When the model is unavailable the engine keeps
     // working with BM25 ranking alone - nothing here can fail the assistant.
     embeddings_ = std::make_unique<EmbeddingEngine>();
-    const std::string model_key = embedding_model_path.empty() ? "all-MiniLM-L6-v2" : embedding_model_path;
+    // Default to the model that actually ships (resources\models ->
+    // build\Release\models\bge-large-en-v1.5, installed to
+    // <install dir>\models\bge-large-en-v1.5). EmbeddingEngine probes
+    // models/<name>, so this is the key that resolves on a clean install;
+    // "all-MiniLM-L6-v2" is not present and silently degrades to BM25.
+    const std::string model_key = embedding_model_path.empty() ? "bge-large-en-v1.5" : embedding_model_path;
     if (embeddings_->initialize(model_key, 256)) {
         embedding_dim_ = embeddings_->dimension();
         load_embeddings();

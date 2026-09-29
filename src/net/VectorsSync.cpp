@@ -553,7 +553,7 @@ std::string VectorsSync::build_contribution_json() const {
     // Content-free: only model identifiers and aggregate counters.
     {
         contribution.peer_metadata.brain_model_name = "llama-3-8b-q4_k_m";  // TODO: get from LlamaWrapper
-        contribution.peer_metadata.embedding_model_name = "all-MiniLM-L6-v2";  // TODO: get from EmbeddingEngine
+        contribution.peer_metadata.embedding_model_name = "bge-large-en-v1.5";  // TODO: get from EmbeddingEngine
         contribution.peer_metadata.embedding_dim = local_embedding_dim_;
         contribution.peer_metadata.shares_embeddings = local_has_embeddings_ && config_.share_corpus_scale;
         contribution.peer_metadata.shares_lora = !local_lora_adapter_name_.empty();

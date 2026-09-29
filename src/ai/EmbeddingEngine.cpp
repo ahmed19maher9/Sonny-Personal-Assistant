@@ -318,7 +318,7 @@ float EmbeddingEngine::cosine(const std::vector<float>& a, const std::vector<flo
 }
 
 std::string EmbeddingEngine::resolve_model_file(const std::string& configured) {
-    const std::string name = configured.empty() ? "all-MiniLM-L6-v2" : configured;
+    const std::string name = configured.empty() ? "bge-large-en-v1.5" : configured;
 
     auto is_regular_file = [](const std::string& path) {
         std::error_code ec;

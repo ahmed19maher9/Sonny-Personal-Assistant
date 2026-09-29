@@ -16,7 +16,7 @@ struct AppConfig {
     bool use_browser_tts; // Use browser/Windows SAPI for TTS instead of Kokoro
     std::string browser_voice; // Selected browser voice name
     bool show_avatar; // Show the 3D avatar overlay
-    std::string rag_embedding_model; // Embedding model for RAG (e.g., all-MiniLM-L6-v2)
+    std::string rag_embedding_model; // Embedding model for RAG (matches models\ dir name)
     bool wake_word_enabled; // Enable wake word detection from STT pipeline
     bool debug_mode; // Enable debug mode with performance timing logging
     bool enable_cava_visualizer; // Enable CAVA terminal visualizer for user speech
@@ -48,7 +48,7 @@ struct AppConfig {
         , use_browser_tts(false)
         , browser_voice("")
         , show_avatar(true)
-        , rag_embedding_model("all-MiniLM-L6-v2")
+        , rag_embedding_model("bge-large-en-v1.5")
         , wake_word_enabled(false)
         , debug_mode(false)
         , enable_cava_visualizer(true)
