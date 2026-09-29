@@ -25,8 +25,17 @@
   <img src="resources/images/sonny-demo.gif" alt="Sonny demo" width="850">
 </p>
 
-> **Demo GIF coming soon — replace this image with your best 20–40 second Sonny demonstration.**
-
+> **Demo GIF coming soon**
+<table>
+  <tr>
+    <td align="center"><img src="resources/images/sonny-screenshot.png" alt="Sonny Screenshot" width="480"></td>
+    <td align="center"><img src="resources/images/iron-man-screenshot.png" alt="Iron Man Screenshot" width="480"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Sonny</em></td>
+    <td align="center"><em>Iron Man</em></td>
+  </tr>
+</table>
 ## Why Sonny?
 
 Most AI assistants can **talk**.
