@@ -36,6 +36,9 @@
     <td align="center"><em>Iron Man</em></td>
   </tr>
 </table>
+
+[![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/ahmed19maher9/sonny-personal-assistant?utm_source=readme&utm_medium=badge)
+
 ## Why Sonny?
 
 Most AI assistants can **talk**.
